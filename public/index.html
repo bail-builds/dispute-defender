@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dispute Defender</title>
+<style>
+:root{--bg:#0f1626;--card:#17213a;--ink:#e8eefc;--mut:#8fa3cc;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--line:#26345a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:28px 20px 60px}h1{margin:0;font-size:30px}.sub{color:var(--mut);margin:4px 0 20px}
+.banner{background:#2a2410;border:1px solid #6b5a14;color:#f5dd8a;border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat b{display:block;font-size:26px}.stat span{color:var(--mut);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.title{font-weight:700;font-size:18px}.meta{color:var(--mut);font-size:13px}
+.pill{border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;color:#10151f}.CONTEST{background:var(--ok)}.CONTEST_WITH_CAUTION{background:var(--warn)}.ACCEPT_AND_REFUND{background:var(--bad)}
+.bar{height:8px;background:#0c1220;border-radius:6px;margin:10px 0;overflow:hidden}.bar i{display:block;height:100%}
+ul{list-style:none;padding:0;margin:8px 0}li{padding:3px 0 3px 22px;position:relative;font-size:14px}li:before{position:absolute;left:0;font-weight:700}.y:before{content:"+";color:var(--ok)}.n:before{content:"-";color:var(--bad)}
+.draft{background:#0c1220;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;white-space:pre-wrap;color:#cfd9f0}
+.why{font-size:14px;margin:6px 0}small{color:var(--mut)}
+</style></head><body><main>
+<h1>Dispute Defender</h1>
+<p class="sub">Evidence packs and seller replies for PayPal disputes. Humans approve; nothing is sent automatically.</p>
+<div class="banner" id="banner">Loading...</div>
+<div class="stats" id="stats"></div><div id="list"></div>
+<script>
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const label={CONTEST:'CONTEST',CONTEST_WITH_CAUTION:'CONTEST WITH CAUTION',ACCEPT_AND_REFUND:'ACCEPT AND REFUND'};
+const color=s=>s>=65?'var(--ok)':s>=40?'var(--warn)':'var(--bad)';
+fetch('/api/disputes').then(r=>r.json()).then(d=>{
+ if(d.error){document.getElementById('banner').textContent=d.error;return}
+ document.getElementById('banner').innerHTML='Sales: '+esc(d.mode==='mock'?'mock data':'real PayPal Sandbox captures')+'. Disputes: <b>simulated</b> in the PayPal Disputes API format (a merchant app cannot file one). Sandbox only, no real money.';
+ const s=d.summary,m=v=>'$'+v.toFixed(2);
+ document.getElementById('stats').innerHTML=[[s.disputes,'open disputes'],[m(s.atStake),'at stake'],[m(s.worthContesting),'worth contesting'],[s.toRefund,'better to refund']].map(x=>`<div class="stat"><b>${esc(x[0])}</b><span>${x[1]}</span></div>`).join('');
+ document.getElementById('list').innerHTML=d.rows.map(r=>{const a=r.assessment,dp=r.dispute;
+  return `<div class="card"><div class="head"><div><div class="title">${esc(r.item)} <small>${esc(dp.dispute_id)}</small></div>
+  <div class="meta">${esc(dp.reason.replace(/_/g,' ').toLowerCase())} - ${a.amount.toFixed(2)} ${esc(a.currency)} - respond by ${esc(dp.seller_response_due_date.slice(0,10))} - capture ${esc(r.sale.captureId)}</div></div>
+  <span class="pill ${esc(a.recommendation)}">${label[a.recommendation]}</span></div>
+  <div class="bar"><i style="width:${a.score}%;background:${color(a.score)}"></i></div>
+  <div class="why"><b>Win score ${a.score}/100.</b> ${esc(a.why)}</div>
+  <ul>${a.evidence.filter(e=>e.type!=='TRANSACTION').map(e=>`<li class="${e.ok?'y':'n'}"><b>${esc(e.label)}:</b> ${esc(e.detail)}</li>`).join('')}</ul>
+  <div class="draft">${esc(r.response.text)}</div><small>Draft by ${r.response.source==='llm'?'AI agent':'template fallback'} for a human to approve.</small></div>`}).join('');
+});
+</script></main></body></html>
