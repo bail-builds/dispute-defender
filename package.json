@@ -1,0 +1,9 @@
+{
+  "name": "dispute-defender",
+  "version": "0.1.0",
+  "description": "AI agent that assembles the evidence pack and drafts the seller response when a PayPal dispute is filed. Sandbox only.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node src/server.js", "demo:mock": "node src/cli.js --mock", "test": "node --test test/*.test.js" }
+}

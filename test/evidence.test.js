@@ -1,0 +1,12 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { SCENARIOS, disputeFor } from '../src/scenarios.js';
+import { assess } from '../src/evidence.js';
+const sale = (sc) => ({ captureId: 'C1', gross: sc.amount, currency: 'USD', status: 'COMPLETED', created: '2026-09-01T00:00:00Z' });
+const run = (key) => { const i = SCENARIOS.findIndex((s) => s.key === key); const sc = SCENARIOS[i]; return assess(disputeFor(sc, i, sale(sc)), sc.order, sale(sc)); };
+test('delivered and signed parcel is contested', () => assert.equal(run('tracked-delivered').recommendation, 'CONTEST'));
+test('parcel stuck in transit is refunded', () => assert.equal(run('in-transit').recommendation, 'ACCEPT_AND_REFUND'));
+test('duplicate charge is always refunded', () => assert.equal(run('duplicate').recommendation, 'ACCEPT_AND_REFUND'));
+test('small untracked order is not worth contesting', () => assert.equal(run('no-tracking').recommendation, 'ACCEPT_AND_REFUND'));
+test('unauthorised claim with matching checks is contested', () => assert.equal(run('unauthorised').recommendation, 'CONTEST'));
+test('score stays within 0..100', () => SCENARIOS.forEach((s) => { const a = run(s.key); assert.ok(a.score >= 0 && a.score <= 100); }));
